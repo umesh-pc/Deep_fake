@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepShield AI - Deepfake Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-cyan: #00fff5;
+            --neon-pink: #ff006e;
+            --neon-purple: #8338ec;
+            --electric-blue: #0066ff;
+            --danger-red: #ff0051;
+            --success-green: #00ff88;
+            --dark-bg: #000000;
+            --dark-surface: #0a0a0f;
+            --dark-card: #12121a;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            background: var(--dark-bg);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 245, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 110, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(131, 56, 236, 0.05) 0%, transparent 50%);
+            background-size: 200% 200%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        /* Scanline Effect */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(transparent, var(--neon-cyan), transparent);
+            opacity: 0.3;
+            z-index: 1;
+            animation: scanline 8s linear infinite;
+        }
+
+        /* Grid Overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 245, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 245, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header with Glitch Effect */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .logo-wrapper {
+            display: inline-block;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .shield-icon {
+            font-size: 80px;
+            filter: drop-shadow(0 0 20px var(--neon-cyan));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-pink), var(--electric-blue));
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .glitch-text {
+            position: relative;
+        }
+
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .glitch-text::before {
+            animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+            color: var(--neon-cyan);
+            z-index: -1;
+        }
+
+        .glitch-text::after {
+            animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse infinite;
+            color: var(--neon-pink);
+            z-index: -2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        /* Main Card */
+        .main-card {
+            background: rgba(18, 18, 26, 0.9);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 20px;
+            padding: 50px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 0 30px rgba(0, 255, 245, 0.3),
+                inset 0 0 30px rgba(0, 255, 245, 0.05);
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-pink), var(--neon-purple), var(--electric-blue));
+            background-size: 400% 400%;
+            border-radius: 20px;
+            z-index: -1;
+            animation: gradientShift 3s ease infinite;
+            opacity: 0.5;
+            filter: blur(10px);
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 3px dashed var(--neon-cyan);
+            border-radius: 15px;
+            padding: 60px 30px;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 255, 245, 0.03);
+            margin-bottom: 30px;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 110, 0.05);
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(255, 0, 110, 0.3);
+        }
+
+        .upload-zone.drag-over {
+            border-color: var(--electric-blue);
+            background: rgba(0, 102, 255, 0.1);
+            transform: scale(1.05);
+            animation: pulse 1s infinite;
+        }
+
+        .upload-icon-wrapper {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 25px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--electric-blue));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 0 0 40px rgba(0, 255, 245, 0.6);
+            position: relative;
+        }
+
+        .upload-icon-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-cyan);
+            animation: pulse 2s infinite;
+        }
+
+        .upload-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .upload-hint {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.95rem;
+        }
+
+        /* File Preview */
+        .file-preview {
+            display: none;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--electric-blue);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .file-preview.active {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 25px;
+            box-shadow: 0 0 20px rgba(255, 0, 110, 0.5);
+        }
+
+        .file-info {
+            text-align: left;
+        }
+
+        .file-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            color: var(--neon-cyan);
+            font-size: 0.85rem;
+        }
+
+        .remove-btn {
+            background: transparent;
+            border: 2px solid var(--danger-red);
+            color: var(--danger-red);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .remove-btn:hover {
+            background: var(--danger-red);
+            color: white;
+            box-shadow: 0 0 20px var(--danger-red);
+            transform: scale(1.05);
+        }
+
+        /* Analyze Button */
+        .analyze-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--electric-blue), var(--neon-purple));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            box-shadow: 0 0 30px rgba(0, 102, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .analyze-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .analyze-btn:hover::before {
+            left: 100%;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 0 50px rgba(0, 102, 255, 0.8);
+        }
+
+        .analyze-btn:disabled {
+            background: linear-gradient(135deg, #333, #555);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Loading State */
+        .loading-container {
+            display: none;
+            text-align: center;
+            margin-top: 40px;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 15px;
+        }
+
+        .loading-container.active {
+            display: block;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        .scanner {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+
+        .scanner-ring {
+            width: 100%;
+            height: 100%;
+            border: 4px solid transparent;
+            border-top-color: var(--neon-cyan);
+            border-right-color: var(--neon-pink);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .scanner-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, var(--neon-cyan), transparent);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .loading-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .loading-status {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+        }
+
+        .processing-bars {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 25px;
+        }
+
+        .bar {
+            width: 6px;
+            height: 30px;
+            background: var(--neon-cyan);
+            border-radius: 3px;
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        .bar:nth-child(2) { animation-delay: 0.1s; }
+        .bar:nth-child(3) { animation-delay: 0.2s; }
+        .bar:nth-child(4) { animation-delay: 0.3s; }
+        .bar:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes wave {
+            0%, 100% { height: 30px; background: var(--neon-cyan); }
+            50% { height: 50px; background: var(--neon-pink); }
+        }
+
+        /* Result Card */
+        .result-card {
+            display: none;
+            margin-top: 40px;
+            padding: 40px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card.active {
+            display: block;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .result-card.REAL {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 245, 0.1));
+            border: 3px solid var(--success-green);
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.4);
+        }
+
+        .result-card.FAKE {
+            background: linear-gradient(135deg, rgba(255, 0, 81, 0.1), rgba(255, 0, 110, 0.1));
+            border: 3px solid var(--danger-red);
+            box-shadow: 0 0 40px rgba(255, 0, 81, 0.4);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            position: relative;
+        }
+
+        .REAL .status-icon {
+            background: var(--success-green);
+            box-shadow: 0 0 30px var(--success-green);
+        }
+
+        .FAKE .status-icon {
+            background: var(--danger-red);
+            box-shadow: 0 0 30px var(--danger-red);
+            animation: glitch 0.5s infinite;
+        }
+
+        .status-info h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+        }
+
+        .REAL .status-info h2 {
+            color: var(--success-green);
+            text-shadow: 0 0 20px var(--success-green);
+        }
+
+        .FAKE .status-info h2 {
+            color: var(--danger-red);
+            text-shadow: 0 0 20px var(--danger-red);
+        }
+
+        .status-label {
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+        }
+
+        .confidence-display {
+            text-align: center;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .REAL .confidence-display {
+            background: var(--success-green);
+            box-shadow: 0 0 20px var(--success-green);
+        }
+
+        .FAKE .confidence-display {
+            background: var(--danger-red);
+            box-shadow: 0 0 20px var(--danger-red);
+        }
+
+        .confidence-value {
+            font-size: 2rem;
+            font-weight: 900;
+            color: white;
+        }
+
+        .confidence-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .result-media {
+            margin-top: 30px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-media img,
+        .result-media video {
+            width: 100%;
+            display: block;
+        }
+
+        .result-stats {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 30px;
+            border-top: 1px solid rgba(0, 255, 245, 0.2);
+        }
+
+        .tech-badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .tech-badge {
+            padding: 8px 16px;
+            background: rgba(0, 255, 245, 0.1);
+            border: 1px solid var(--neon-cyan);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 245, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .tech-badge:hover {
+            background: var(--neon-cyan);
+            color: var(--dark-bg);
+            transform: scale(1.1);
+        }
+
+        .copyright {
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .main-card { padding: 30px 20px; }
+            .upload-zone { padding: 40px 20px; }
+            .result-stats { grid-template-columns: 1fr; }
+            .status-info h2 { font-size: 2rem; }
+        }
+
+        /* Hidden input */
+        .file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Elements -->
+    <div class="bg-animation"></div>
+    <div class="scanline"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-wrapper">
+                <div class="shield-icon">🛡️</div>
+            </div>
+            <h1 class="glitch-text" data-text="DEEPSHIELD">DEEPSHIELD</h1>
+            <div class="subtitle">Neural Authentication System</div>
+        </div>
+
+        <!-- Main Card -->
+        <div class="main-card">
+            <form id="uploadForm" method="POST" enctype="multipart/form-data">
+                <!-- Upload Zone -->
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon-wrapper">
+                        <span>⚡</span>
+                    </div>
+                    <div class="upload-text">DROP TARGET ACQUIRED</div>
+                    <div class="upload-hint">Deploy Image or Video | JPG, PNG, MP4, AVI, MOV</div>
+                    <input type="file" id="fileInput" name="file" class="file-input" accept="image/*,video/*" required>
+                </div>
+
+                <!-- File Preview -->
+                <div class="file-preview" id="filePreview">
+                    <div class="file-details">
+                        <div class="file-icon">📊</div>
+                        <div class="file-info">
+                            <div class="file-name" id="fileName"></div>
+                            <div class="file-size" id="fileSize"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="remove-btn" id="removeBtn">✕ ABORT</button>
+                </div>
+
+                <!-- Analyze Button -->
+                <button type="submit" class="analyze-btn" id="analyzeBtn">
+                    ⚡ INITIATE SCAN ⚡
+                </button>
+            </form>
+
+            <!-- Loading State -->
+            <div class="loading-container" id="loadingContainer">
+                <div class="scanner">
+                    <div class="scanner-ring"></div>
+                    <div class="scanner-core"></div>
+                </div>
+                <div class="loading-text">NEURAL ANALYSIS IN PROGRESS</div>
+                <div class="loading-status">Scanning quantum signature patterns...</div>
+                <div class="processing-bars">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+            </div>
+
+            <!-- Result Card -->
+            {% if result %}
+            <div class="result-card {{ result }} active">
+                <div class="result-header">
+                    <div class="status-container">
+                        <div class="status-icon">
+                            {% if result == 'REAL' %}✓{% else %}⚠{% endif %}
+                        </div>
+                        <div class="status-info">
+                            <div class="status-label">Classification</div>
+                            <h2>{{ result }}</h2>
+                        </div>
+                    </div>
+                    <div class="confidence-display">
+                        <div class="confidence-value">{{ confidence }}%</div>
+                        <div class="confidence-label">Confidence</div>
+                    </div>
+                </div>
+
+                {% if file_path %}
+                <div class="result-media">
+                    {% if file_path.lower().endswith(('.mp4', '.avi', '.mov')) %}
+                    <video controls>
+                        <source src="{{ file_path }}" type="video/mp4">
+                    </video>
+                    {% else %}
+                    <img src="{{ file_path }}" alt="Analyzed Media">
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="scanTime">2.3s</div>
+                        <div class="stat-label">Scan Time</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="timestamp"></div>
+                        <div class="stat-label">Timestamp</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">v1.0</div>
+                        <div class="stat-label">Model Ver</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="tech-badges">
+                <span class="tech-badge">TensorFlow</span>
+                <span class="tech-badge">Neural Networks</span>
+                <span class="tech-badge">Computer Vision</span>
+                <span class="tech-badge">Python</span>
+                <span class="tech-badge">Flask</span>
+            </div>
+            <div class="copyright">
+                © 2026 DeepShield AI | Powered by Advanced ML
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const removeBtn = document.getElementById('removeBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingContainer = document.getElementById('loadingContainer');
+
+        // Click to upload
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            filePreview.classList.add('active');
+            analyzeBtn.disabled = false;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Remove file
+        removeBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            filePreview.classList.remove('active');
+            analyzeBtn.disabled = true;
+        });
+
+        // Form submission
+        uploadForm.addEventListener('submit', (e) => {
+            loadingContainer.classList.add('active');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '⏳ ANALYZING...';
+        });
+
+        // Set timestamp
+        const timestampEl = document.getElementById('timestamp');
+        if (timestampEl) {
+            const now = new Date();
+            timestampEl.textContent = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+        }
+
+        // Prevent form resubmission
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+</body>
+</html>
